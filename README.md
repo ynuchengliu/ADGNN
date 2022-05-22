@@ -1,2 +1,2 @@
 # hawkes_graphsage
-hawkes_graphsage
+ADGNN
