@@ -1,2 +1,2 @@
-# hawkes_graphsage
+# ADGNN
 ADGNN
