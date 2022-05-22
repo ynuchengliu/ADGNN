@@ -3,6 +3,8 @@ import shutil
 from time import time
 from datetime import datetime
 import argparse
+
+import dgl
 import numpy as np
 from tqdm import tqdm
 
@@ -34,9 +36,9 @@ parser.add_argument('--length', type=int, default=24, help='Size of temporal : 1
 parser.add_argument("--force", type=str, default=True, help="remove params dir")
 parser.add_argument("--data_name", type=str, default=8, help="the number of data documents [8/4]", required=False)
 parser.add_argument('--num_point', type=int, default=170, help='road Point Number [170/307] ', required=False)
-parser.add_argument('--seed', type=int, default=31150, help='', required=False)
+parser.add_argument('--seed', type=int, default=31240, help='', required=False)
 parser.add_argument('--decay', type=float, default=0.99, help='decay rate of learning rate [0.97/0.92]')
-
+#31240:15.74
 FLAGS = parser.parse_args()
 decay = FLAGS.decay
 dataname = FLAGS.data_name
@@ -183,9 +185,10 @@ if __name__ == "__main__":
         **stats_data
     )
 
-    # np.random.seed(seed)
-    # torch.manual_seed(seed)
-    # torch.cuda.manual_seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    dgl.seed(seed)
     # torch.backends.cudnn.deterministic = True
     # torch.backends.cudnn.benchmark = False
 
@@ -234,62 +237,63 @@ if __name__ == "__main__":
     else:
         print("Loading Adjacency matrix...  ")
 
-        A = np.load('./data/PEMS08/08所有邻接矩阵(train,val,test).npy')
-        A[np.isnan(A)] = 0.
-        A[np.isinf(A)] = 0.
-
-
-    train_A = A[:518]  # train_r_length = 518
-    event_flag = 0.01
-    num_nodes = 170
-    hawkes_batch_size = 2
-    time_split = torch.FloatTensor([10, 5]).to(device)
-    u_begin = get_u_begin(train_A)
-    event_list = get_event_list(A, event_flag)
-    train_event, ture_event = get_event_train_and_event_ture(event_list, hawkes_batch_size)
-    D = discriminator()
-    G = generator(num_nodes, len(train_event))
-
-    optimize = optim.Adam(params=G.parameters(), lr=0.1)
-    if torch.cuda.is_available():
-        D = D.to(device)
-        G = G.to(device)
-
-    test_event = torch.FloatTensor(ture_event).to(device)
-    u_begin = torch.FloatTensor(u_begin).to(device)
-    print('\nTraining Hawkes.')
-    for epoch in range(40):
-        optimize.zero_grad()
-        fake_event = G(time_split, train_event, u_begin, hawkes_batch_size)
-        loss = D(fake_event, test_event)
-        optimize.step()
-        print('\nEpoch({})\nloss:{}'.format(epoch + 1, loss.item()))
-    print('\n\nTraining finished.')
-    fake_event = fake_event.detach().cpu().numpy()
-    # np.save('..../predict_event(batch=2).npy', fake_event)
-    # torch.save(G, '..../gan(08_all_A,lr=0.1,event_flag = 1e-2,batch=2).pkl')
-    event_train = torch.FloatTensor(fake_event).to(device)
-    A_ture, A_last = get_ture_A_and_last_A(A)
-    A_ture = torch.FloatTensor(A_ture).to(device)
-    A_last = torch.FloatTensor(A_last).to(device)
-
-    predict_Adj = predict_A(num_nodes=len(A_last[0]))
-    predict_Adj = predict_Adj.to(device)
-    predict_optimize = optim.Adam(params=predict_Adj.parameters(), lr=0.1)
-    predict_loss_fuction = nn.MSELoss()
-    for i in range(200):
-        predict_optimize.zero_grad()
-        A_fake = predict_Adj(A_last, event_train, len(A_last[0]))
-        predict_loss = predict_loss_fuction(A_fake, A_ture)
-        predict_loss.backward()
-        predict_optimize.step()
-        print(loss.item())
-    A_fake[A_fake < 0] = 0
-    A_fake = A_fake.detach().cpu().numpy()
-    A = A_fake
-    A=torch.FloatTensor(A).to(device)
-    #A = np.load('......./P8/data/PEMS08/预测的08邻接矩阵(batch_size=2).npy')
+    #     A = np.load('./data/PEMS08/08所有邻接矩阵(train,val,test).npy')
+    #     A[np.isnan(A)] = 0.
+    #     A[np.isinf(A)] = 0.
+    #
+    #
+    # train_A = A[:518]  # train_r_length = 518
+    # event_flag = 0.01
+    # num_nodes = 170
+    # hawkes_batch_size = 2
+    # time_split = torch.FloatTensor([10, 5]).to(device)
+    # u_begin = get_u_begin(train_A)
+    # event_list = get_event_list(A, event_flag)
+    # train_event, ture_event = get_event_train_and_event_ture(event_list, hawkes_batch_size)
+    # D = discriminator()
+    # G = generator(num_nodes, len(train_event))
+    #
+    # optimize = optim.Adam(params=G.parameters(), lr=0.1)
+    # if torch.cuda.is_available():
+    #     D = D.to(device)
+    #     G = G.to(device)
+    #
+    # test_event = torch.FloatTensor(ture_event).to(device)
+    # u_begin = torch.FloatTensor(u_begin).to(device)
+    # print('\nTraining Hawkes.')
+    # for epoch in range(40):
+    #     optimize.zero_grad()
+    #     fake_event = G(time_split, train_event, u_begin, hawkes_batch_size)
+    #     loss = D(fake_event, test_event)
+    #     optimize.step()
+    #     print('\nEpoch({})\nloss:{}'.format(epoch + 1, loss.item()))
+    # print('\n\nTraining finished.')
+    # fake_event = fake_event.detach().cpu().numpy()
+    # # np.save('..../predict_event(batch=2).npy', fake_event)
+    # # torch.save(G, '..../gan(08_all_A,lr=0.1,event_flag = 1e-2,batch=2).pkl')
+    # event_train = torch.FloatTensor(fake_event).to(device)
+    # A_ture, A_last = get_ture_A_and_last_A(A)
+    # A_ture = torch.FloatTensor(A_ture).to(device)
+    # A_last = torch.FloatTensor(A_last).to(device)
+    #
+    # predict_Adj = predict_A(num_nodes=len(A_last[0]))
+    # predict_Adj = predict_Adj.to(device)
+    # predict_optimize = optim.Adam(params=predict_Adj.parameters(), lr=0.1)
+    # predict_loss_fuction = nn.MSELoss()
+    # for i in range(200):
+    #     predict_optimize.zero_grad()
+    #     A_fake = predict_Adj(A_last, event_train, len(A_last[0]))
+    #     predict_loss = predict_loss_fuction(A_fake, A_ture)
+    #     predict_loss.backward()
+    #     predict_optimize.step()
+    #     print(loss.item())
+    # A_fake[A_fake < 0] = 0
+    # A_fake = A_fake.detach().cpu().numpy()
+    # A = A_fake
+    # A=torch.FloatTensor(A).to(device)
+    A = np.load('/home/user/anaconda3/envs/liucheng/all_code/P8/data/PEMS08/预测的08邻接矩阵(batch_size=2).npy')
     A[A < 1e-9] = 0
+    A = torch.FloatTensor(A).to(device)
     A_train = A[:258]*KMD
     A_val = A[258:344]*KMD
     A_test = A[344:]*KMD
@@ -368,10 +372,10 @@ if __name__ == "__main__":
     model_name, str(bestId + 1), str(round(his_loss[bestId], 2))))
     net.load_state_dict(torch.load(best_params_filename))
     start_time_test = time()
-    prediction= predict(net, test_loader, supports, device)
+    prediction= predict(net, test_loader, A_test, device)
     end_time_test = time()
 
-    evaluate(net, test_loader, true_value, supports, device, epoch)
+    evaluate(net, test_loader, true_value, A_test, device, epoch)
     test_time = (end_time_test - start_time_test)
 
     print("Test time: %.2f" % test_time)
