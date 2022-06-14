@@ -57,30 +57,31 @@ class generator(nn.Module):
         event_list=event_list[:-1]
         sequence = range(len(event_list))
         num_nodes = len(event_list[0])
-        for start in tqdm(sequence[::batch_size],ncols=80):
+        for start in tqdm(sequence[::batch_size], ncols=80):
             lamda_temp = []
-            event_begin = event_list[start:start+batch_size]
+            event_begin = event_list[start:start + batch_size]
             event_begin = torch.FloatTensor(event_begin).cuda(1)
 
             for node in range(num_nodes):
                 u = u_begin[node]
-                lamda = u + self.a[start][node] * math.exp((-torch.matmul(self.w[start][node], event_begin[0][node]) * time[0])) + \
-                        self.a[start+1][node] * math.exp((-torch.matmul(self.w[start+1][node], event_begin[1][node]) * time[1]))
-                temp = torch.softmax(lamda,dim=1)
+                lamda = u + self.a[start][node] * math.exp(
+                    (-torch.matmul(self.w[start][node], event_begin[0][node]) * time[0])) + \
+                        self.a[start + 1][node] * math.exp(
+                    (-torch.matmul(self.w[start + 1][node], event_begin[1][node]) * time[1]))
+                temp = torch.softmax(lamda, dim=1)
                 temp2 = temp.detach().cpu().numpy()
                 temp = self.liner[node](temp)
                 event_prediction_list.append(temp)
                 lamda_temp.append(temp2)
             lamda_temp = np.array(lamda_temp)
-            lamda_temp = lamda_temp.reshape(num_nodes,num_nodes,3)
+            lamda_temp = lamda_temp.reshape(num_nodes, num_nodes, 3)
             u_begin = lamda_temp
             u_begin = torch.FloatTensor(u_begin).cuda(1)
         temp3 = event_prediction_list[0]
         for i in event_prediction_list[1:]:
-            temp3 = torch.cat((temp3,i),0)
-        temp3 = temp3.view(int(len(event_list)/2),num_nodes,num_nodes)
+            temp3 = torch.cat((temp3, i), 0)
+        temp3 = temp3.view(int(len(event_list) / 2), num_nodes, num_nodes)
         return temp3
-
 
 class discriminator(nn.Module):
     def __init__(self):

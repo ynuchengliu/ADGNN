@@ -33,11 +33,9 @@ parser.add_argument("--data_name", type=str, default=8, help="the number of data
 parser.add_argument('--num_point', type=int, default=170, help='road Point Number [170/307] ', required=False)
 parser.add_argument('--seed', type=int, default=31240, help='', required=False)
 parser.add_argument('--decay', type=float, default=0.99, help='decay rate of learning rate [0.97/0.92]')
-#31240:15.74
 FLAGS = parser.parse_args()
 decay = FLAGS.decay
 dataname = FLAGS.data_name
-adj_filename = 'data/PEMS0%s/distance.csv' % dataname
 graph_signal_matrix_filename = 'data/PEMS0%s/pems0%s.npz' % (dataname, dataname)
 Length = FLAGS.length
 num_nodes = FLAGS.num_point
@@ -45,43 +43,33 @@ epochs = FLAGS.max_epoch
 optimizer = FLAGS.optimizer
 num_of_vertices = FLAGS.num_point
 seed = FLAGS.seed
-
 num_of_features = 3
 points_per_hour = 12
 num_for_predict = 12
 num_of_weeks = 2
 num_of_days = 1
 num_of_hours = 2
-
 merge = False
 model_name = 'Karl_ActiveGNN_cnt_params_%s' % dataname
 params_dir = 'Karl_ActiveGNN_cnt_params'
 prediction_path = 'Karl_ActiveGNN_cnt_params_0%s' % dataname
 device = torch.device(FLAGS.device)
 wdecay = 0.001
-
-theta, gamma = 0.00001, 0.  # adj_value[adj_value < theta] = gamma
 learning_rate = 0.001
-
 batch_size = FLAGS.batch_size
 mt_mem_adj_value = 0.000001
 lt_mem_adj_value = 0.000001
 eq_mem_adj_value = 0.0001
 is_axis_mean_max_norm = True
 scd = -1
-
 data_file = '4'
 method = 'KL'
 load_matrix = False
 KMD = 0.000001
 add_A_and_Diag = False
 mat_A_and_Diag = False
-
 AMFile = f'AM_D8_Conv_Harry_Karl_norm.npy'
 writedown = f'/home/user/liucheng/DAGNN_%s_%s.txt' % (dataname, datetime.now(), )
-
-
-
 print("mat_A_and_Diag : ", mat_A_and_Diag)
 print("batch_size : ", batch_size)
 print("mt_mem_adj_value : ", mt_mem_adj_value)
@@ -174,9 +162,6 @@ if __name__ == "__main__":
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     dgl.seed(seed)
-    # torch.backends.cudnn.deterministic = True
-    # torch.backends.cudnn.benchmark = False
-
     """ Loading Data Above """
 
     loss_function = nn.MSELoss()
@@ -192,11 +177,8 @@ if __name__ == "__main__":
     validation_loss_lst = []
     train_time = []
     A0_ = np.zeros((num_nodes, num_nodes))
-    # A = adjs
-
     A_lst = []
-
-    if  load_matrix:
+    if not load_matrix:
         print("Constructing Global A-matrix...  By KL method. for Data4-307p. ")
         _, _, train_loader_local, _, _ = generate_all_data(16)
 
@@ -216,17 +198,16 @@ if __name__ == "__main__":
         save_A_matrix_filename = AMFile
         A_lst = np.array(A_lst)
         np.save(save_A_matrix_filename, A_lst)
-
         print("Saved.", save_A_matrix_filename)
-        # exit(0)
     else:
         print("Loading Adjacency matrix...  ")
 
-        A = np.load('/home/user/anaconda3/envs/zhaotengdemo/liucheng/集成的代码/P8/data/PEMS08/08所有邻接矩阵(train,val,test).npy')
+        A = np.load('........./08_all_A(train,val,test).npy')
         A[np.isnan(A)] = 0.
         A[np.isinf(A)] = 0.
-
-
+    A = A_lst
+    A[np.isnan(A)] = 0.
+    A[np.isinf(A)] = 0.
     train_A = A[:518]  # train_r_length = 518
     event_flag = 0.01
     num_nodes = 170
@@ -280,8 +261,6 @@ if __name__ == "__main__":
     with open(writedown, mode='a', encoding='utf-8') as f:
         f.write(f"seed,epoch,train_loss,valid_loss,learning_rate,_MAE,_MAPE,_RMSE,datetime\n")
     print("ActiveGNN have {} paramerters in total.".format(sum(x.numel() for x in net.parameters())))
-
-
     watch = True
     for epoch in range(1, epochs + 1):
         train_loss = []
