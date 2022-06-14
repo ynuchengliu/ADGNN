@@ -29,13 +29,11 @@ parser.add_argument('--length', type=int, default=24, help='Size of temporal : 1
 parser.add_argument("--force", type=str, default=True, help="remove params dir")
 parser.add_argument("--data_name", type=str, default=4, help="the number of data documents [8/4]", required=False)
 parser.add_argument('--num_point', type=int, default=307, help='road Point Number [170/307] ', required=False)
-parser.add_argument('--seed', type=int, default=40060, help='', required=False)
+parser.add_argument('--seed', type=int, default=50010, help='', required=False)
 parser.add_argument('--decay', type=float, default=0.99, help='decay rate of learning rate [0.97/0.92]')
-#40060:19.76,50010,19.74,50020,19.77
 FLAGS = parser.parse_args()
 decay = FLAGS.decay
 dataname = FLAGS.data_name
-adj_filename = 'data/PEMS0%s/distance.csv' % dataname
 graph_signal_matrix_filename = 'data/PEMS0%s/pems0%s.npz' % (dataname, dataname)
 Length = FLAGS.length
 num_nodes = FLAGS.num_point
@@ -57,24 +55,19 @@ params_dir = 'Karl_ActiveGraphSage_cnt_params'
 prediction_path = 'Karl_ActiveGraphSage_cnt_params_0%s' % dataname
 device = torch.device(FLAGS.device)
 wdecay = 0.001
-
-theta, gamma = 0.00001, 0.  # adj_value[adj_value < theta] = gamma
 learning_rate = 0.001
-
 batch_size = FLAGS.batch_size
 mt_mem_adj_value = 0.000001
 lt_mem_adj_value = 0.000001
 eq_mem_adj_value = 0.0001
 is_axis_mean_max_norm = True
 scd = -1
-
 data_file = '4'
 method = 'KL'
-load_matrix = False
+load_matrix = True
 KMD = 0.000001
 add_A_and_Diag = False
 mat_A_and_Diag = False
-
 AMFile = f'AM_D8_Conv_Harry_Karl_norm.npy'
 writedown = f'/home/user/liucheng/DAGNN_%s_%s.txt' % (dataname, datetime.now(), )
 print("mat_A_and_Diag : ", mat_A_and_Diag)
@@ -215,7 +208,7 @@ if __name__ == "__main__":
     else:
         print("Loading Adjacency matrix...  ")
 
-        A_lst = np.load('/home/user/anaconda3/envs/zhaotengdemo/liucheng/集成的代码/P4/data/PEMS04/04所有邻接矩阵(train,val,test,shuffle=Ture).npy')
+        A_lst = np.load('......../04all_A(train,val,test).npy')
 
 
     A = A_lst
@@ -247,7 +240,6 @@ if __name__ == "__main__":
         optimize.step()
         print('\nEpoch({}):loss:{}'.format(epoch + 1, hawkes_loss.item()))
     print('\n\nTraining finished.')
-    #fake_event = np.load('/home/user/anaconda3/envs/zhaotengdemo/liucheng/集成的代码/P4/data/PEMS04/预测所有的事件(batch=2)（.npy')
     fake_event = fake_event.detach().cpu().numpy()
     fake_event[fake_event>=2.5]=3
     fake_event[fake_event<=1.5]=1
@@ -275,7 +267,6 @@ if __name__ == "__main__":
     A_train = torch.FloatTensor(A_train * KMD).cuda()
     A_val = torch.FloatTensor(A_val * KMD).cuda()
     A_test = torch.FloatTensor(A_test * KMD).cuda()
-
     temp = 1
     temp2=0
     train = []
